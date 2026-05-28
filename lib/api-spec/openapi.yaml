@@ -3,13 +3,23 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Axiom Synapse API - Investigative Journalism Engine
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: articles
+    description: Article management and ingestion
+  - name: categories
+    description: Category taxonomy
+  - name: tags
+    description: Tag management and cross-referencing
+  - name: search
+    description: Full-text and fuzzy search
+  - name: stats
+    description: Platform analytics and stats
 paths:
   /healthz:
     get:
@@ -24,6 +34,304 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /articles:
+    get:
+      operationId: listArticles
+      tags: [articles]
+      summary: List articles
+      description: List all articles with optional filtering by category and tag
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Filter by category slug
+        - name: tag
+          in: query
+          schema:
+            type: string
+          description: Filter by tag slug
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: List of articles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Article"
+
+    post:
+      operationId: createArticle
+      tags: [articles]
+      summary: Manually create an article
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArticleInput"
+      responses:
+        "201":
+          description: Created article
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Article"
+
+  /articles/ingest:
+    post:
+      operationId: ingestArticle
+      tags: [articles]
+      summary: Ingest article from URL
+      description: Scrape, parse, rewrite, and generate pitches for a URL. Returns the created article.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IngestInput"
+      responses:
+        "201":
+          description: Ingested and rewritten article
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Article"
+        "400":
+          description: Invalid URL or failed to fetch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /articles/featured:
+    get:
+      operationId: getFeaturedArticles
+      tags: [articles]
+      summary: Get featured/pinned articles
+      description: Returns the top featured articles for hero display
+      responses:
+        "200":
+          description: Featured articles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Article"
+
+  /articles/recent:
+    get:
+      operationId: getRecentArticles
+      tags: [articles]
+      summary: Get recently published articles
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Recent articles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Article"
+
+  /articles/{id}:
+    get:
+      operationId: getArticle
+      tags: [articles]
+      summary: Get single article
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Article detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Article"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    patch:
+      operationId: updateArticle
+      tags: [articles]
+      summary: Update article metadata
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArticleUpdate"
+      responses:
+        "200":
+          description: Updated article
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Article"
+
+    delete:
+      operationId: deleteArticle
+      tags: [articles]
+      summary: Delete article
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /articles/{id}/pitches:
+    get:
+      operationId: getArticlePitches
+      tags: [articles]
+      summary: Get pitch matrix for article
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Pitch matrix (3 angles)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PitchMatrix"
+
+  /articles/{id}/related:
+    get:
+      operationId: getRelatedArticles
+      tags: [articles]
+      summary: Get articles related by tags/category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Related articles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Article"
+
+  /categories:
+    get:
+      operationId: listCategories
+      tags: [categories]
+      summary: List all categories
+      responses:
+        "200":
+          description: Categories with article counts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+
+  /tags:
+    get:
+      operationId: listTags
+      tags: [tags]
+      summary: List all tags
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Tags with usage counts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tag"
+
+  /search:
+    get:
+      operationId: searchArticles
+      tags: [search]
+      summary: Full-text search across articles
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 15
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SearchResult"
+
+  /stats:
+    get:
+      operationId: getPlatformStats
+      tags: [stats]
+      summary: Platform-wide analytics
+      description: Returns article counts by category, total tags, ingestion history
+      responses:
+        "200":
+          description: Platform stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformStats"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +342,254 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    Article:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        slug:
+          type: string
+        excerpt:
+          type: string
+        body:
+          type: string
+        sourceUrl:
+          type: ["string", "null"]
+        sourceRaw:
+          type: ["string", "null"]
+        category:
+          $ref: "#/components/schemas/Category"
+        tags:
+          type: array
+          items:
+            $ref: "#/components/schemas/Tag"
+        pitches:
+          type: ["object", "null"]
+          $ref: "#/components/schemas/PitchMatrix"
+        readingTime:
+          type: integer
+        isFeatured:
+          type: boolean
+        status:
+          type: string
+          enum: [draft, published, archived]
+        publishedAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - title
+        - slug
+        - excerpt
+        - body
+        - category
+        - tags
+        - readingTime
+        - isFeatured
+        - status
+        - createdAt
+        - updatedAt
+
+    ArticleInput:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+        excerpt:
+          type: string
+        body:
+          type: string
+        categoryId:
+          type: integer
+        tagIds:
+          type: array
+          items:
+            type: integer
+        isFeatured:
+          type: boolean
+        status:
+          type: string
+          enum: [draft, published, archived]
+      required:
+        - title
+        - excerpt
+        - body
+        - categoryId
+
+    ArticleUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        excerpt:
+          type: string
+        body:
+          type: string
+        categoryId:
+          type: integer
+        tagIds:
+          type: array
+          items:
+            type: integer
+        isFeatured:
+          type: boolean
+        status:
+          type: string
+          enum: [draft, published, archived]
+
+    IngestInput:
+      type: object
+      properties:
+        url:
+          type: string
+        categoryId:
+          type: integer
+        tagIds:
+          type: array
+          items:
+            type: integer
+      required:
+        - url
+        - categoryId
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: ["string", "null"]
+        articleCount:
+          type: integer
+      required:
+        - id
+        - name
+        - slug
+        - articleCount
+
+    Tag:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+        articleCount:
+          type: integer
+      required:
+        - id
+        - name
+        - slug
+        - articleCount
+
+    PitchMatrix:
+      type: object
+      properties:
+        academic:
+          $ref: "#/components/schemas/Pitch"
+        editorial:
+          $ref: "#/components/schemas/Pitch"
+        executive:
+          $ref: "#/components/schemas/Pitch"
+      required:
+        - academic
+        - editorial
+        - executive
+
+    Pitch:
+      type: object
+      properties:
+        headline:
+          type: string
+        summary:
+          type: string
+        bullets:
+          type: array
+          items:
+            type: string
+        angle:
+          type: string
+          enum: [academic, editorial, executive]
+      required:
+        - headline
+        - summary
+        - bullets
+        - angle
+
+    SearchResult:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        slug:
+          type: string
+        excerpt:
+          type: string
+        category:
+          $ref: "#/components/schemas/Category"
+        relevanceScore:
+          type: number
+        publishedAt:
+          type: ["string", "null"]
+      required:
+        - id
+        - title
+        - slug
+        - excerpt
+        - category
+        - relevanceScore
+
+    PlatformStats:
+      type: object
+      properties:
+        totalArticles:
+          type: integer
+        publishedArticles:
+          type: integer
+        totalCategories:
+          type: integer
+        totalTags:
+          type: integer
+        articlesByCategory:
+          type: array
+          items:
+            type: object
+            properties:
+              category:
+                type: string
+              count:
+                type: integer
+            required:
+              - category
+              - count
+        recentIngestCount:
+          type: integer
+      required:
+        - totalArticles
+        - publishedArticles
+        - totalCategories
+        - totalTags
+        - articlesByCategory
+        - recentIngestCount
