@@ -1,0 +1,9 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "EyAs8asc9Ku9O9tL0q64J"
+uri = "file://exports/axiom-synapse-project-source.zip"
+type = "unspecified"
+title = "Axiom Synapse project source"
+description = "Complete project source archive including app code, API server, shared libraries, configuration, generated API files, public assets, and workspace metadata. Dependency folders and temporary build caches are excluded."
